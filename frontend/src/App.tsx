@@ -1,5 +1,7 @@
-import { Greet2 } from "../wailsjs/go/main/App";
-import { useRef, useState } from "react";
+import { GetFilePath } from "../wailsjs/go/main/App";
+import { OpenFilePicker } from "../wailsjs/go/main/App";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileList } from "./components/file-list";
 import { DeviceList } from "./components/device-list";
@@ -13,31 +15,23 @@ export default function SocketShare() {
     { name: "some_file.docs", uploadTime: "<time of upload>" },
   ];
 
-  const devices = [
-    "192.168.0.102",
-    "192.168.0.103",
-    "192.168.0.104",
-    "192.168.0.105",
-    "192.168.0.106",
-    "192.168.0.107",
-    "192.168.0.108",
-    "192.168.0.109",
-  ];
+  const devices = ["192.168.0.102", "192.168.0.103", "192.168.0.104"];
 
   const handleDownload = (fileName: string) => {
     console.log("Downloading:", fileName);
   };
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const handleButtonClick = async () => {
+    try {
+      const filePath = await OpenFilePicker();
+      if (filePath) {
+        const fileName = filePath.split(/[\\/]/).pop();
+        console.log("Selected file:", fileName);
 
-  const handleButtonClick = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      console.log("Selected file:", file.name);
+        await GetFilePath(filePath);
+      }
+    } catch (error) {
+      console.error("Error selecting file:", error);
     }
   };
 
@@ -69,12 +63,6 @@ export default function SocketShare() {
             >
               <img src="./src/assets/upload.svg" /> Upload
             </Button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleFileChange}
-              className="hidden"
-            />
           </div>
         </div>
 

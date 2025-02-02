@@ -3,9 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"socket-share/internal/discovery"
 	"socket-share/internal/registry"
 	fs "socket-share/internal/share"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
@@ -55,4 +58,20 @@ func (a *App) Greet(name string) string {
 
 func (a *App) Greet2(name string) string {
 	return fmt.Sprintf("Hello %s", name)
+}
+
+func (a *App) OpenFilePicker() (string, error) {
+	return runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Select File",
+		Filters: []runtime.FileFilter{
+			{
+				DisplayName: "All Files (*.*)",
+				Pattern:     "*.*",
+			},
+		},
+	})
+}
+
+func (a *App) GetFilePath(path string) {
+	log.Print("selected file path: ", path)
 }
