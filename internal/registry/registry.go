@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 	"socket-share/internal/discovery"
 	"sync"
+	"time"
 )
 
 type File struct {
 	Name        string
+	Path        string
 	Size        int
 	Uploaded_by string
 	Date        int
@@ -32,39 +35,68 @@ func NewFileRegistry() *FileRegistry {
 	}
 }
 
+// NewFile reads the absolute file path and generates a File item.
+//
+// It then Inserts the file into Registry.
+func (fr *FileRegistry) NewFile(path string) File {
+	fileInfo, err := os.Stat(path)
+	if err != nil {
+		log.Println("Registry: Error creating new file: ", err)
+	}
+
+	file := File{
+		Name:        fileInfo.Name(),
+		Path:        path,
+		Size:        int(fileInfo.Size()),
+		Uploaded_by: discovery.GetPrivateIP(),
+		Date:        int(time.Now().Unix()),
+	}
+
+	fr.Insert(file, discovery.GetPrivateIP())
+	return file
+}
+
 // Insert performs a thread safe append to files map.
-func (fr *FileRegistry) Insert(item File, conn *net.UDPConn, ip string) {
+func (fr *FileRegistry) Insert(item File, ip string) {
 	fr.mu.Lock()
 	fr.files[item] = ip
 	fr.mu.Unlock()
-	fr.SyncWrite(item, conn)
+	fr.SyncWrite(item)
+}
+
+// Delete removes the file from map.
+func (fr *FileRegistry) Delete(item File) {
+	delete(fr.files, item)
 }
 
 // SyncWrite broadcasts the newly uploaded File item.
-//
-// Should the caller Close the connection after successful broadcast ???
-func (fr *FileRegistry) SyncWrite(item File, conn *net.UDPConn) {
-	broadcastAddr, _ := net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", broadcastIP, broadcastPort))
+func (fr *FileRegistry) SyncWrite(item File) {
+	broadcastAddr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("%s:%d", broadcastIP, broadcastPort))
+	if err != nil {
+		log.Printf("Sync Write: Unable to resolve broadcast addr: %v", err)
+		return
+	}
+
+	conn, err := net.ListenUDP("udp4", &net.UDPAddr{Port: 0})
+	if err != nil {
+		log.Println("Sync Write: Error marshaling to json: ", err)
+	}
 
 	jsonF, err := json.Marshal(item)
 	if err != nil {
 		log.Println("Sync Write: Error marshaling to json: ", err)
 	}
 
-	n, err := conn.WriteToUDP(jsonF, broadcastAddr)
-	if err != nil {
+	if _, err = conn.WriteToUDP(jsonF, broadcastAddr); err != nil {
 		log.Println("Sync Write: Error broadcasting file for sync: ", err)
 	}
 
-	log.Printf("Sync Write: Written %d bytes to sync.", n)
+	log.Printf("Broadcasted file registry for %s to %s", item.Name, broadcastAddr)
+	conn.Close()
 }
 
 // SyncRead listens for File update broadcasts and updates the local File copy.
 func (fr *FileRegistry) SyncRead() {
-	ip := discovery.GetPrivateIP()
-	log.Print("Read Sync enabled for: ", ip)
-
-	// is this udp conn blocking ?
 	conn, err := net.ListenUDP("udp4", &net.UDPAddr{Port: broadcastPort})
 	if err != nil {
 		log.Println("Sync Read: Error connecting to broadcast: ", err)
@@ -74,22 +106,26 @@ func (fr *FileRegistry) SyncRead() {
 	// will this buffer get overwritten after a new Sync ?
 	buff := make([]byte, 1024)
 	for {
-		n, err := conn.Read(buff)
+		n, _, err := conn.ReadFromUDP(buff)
 		if err != nil {
 			log.Println("Sync Read: Error getting file part: ", err)
 		}
 
-		jsonF := buff[:n]
 		var file File
-
-		err = json.Unmarshal(jsonF, &file)
-		if err != nil {
+		if err := json.Unmarshal(buff[:n], &file); err != nil {
 			log.Println("Sync Read: Error unmarshaling to json: ", err)
+			continue
+		}
+
+		log.Printf("Sync Read: Received %s from %s", file.Name, file.Uploaded_by)
+		log.Print("File Registry after sync: ", fr.files)
+
+		if file.Uploaded_by == discovery.GetPrivateIP() {
+			continue
 		}
 
 		fr.mu.Lock()
-		fr.files[file] = ip
+		fr.files[file] = file.Uploaded_by
 		fr.mu.Unlock()
-		log.Print("Read Sync ended: ", ip)
 	}
 }
