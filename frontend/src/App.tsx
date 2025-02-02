@@ -1,34 +1,23 @@
-import { GetFilePath } from "../wailsjs/go/main/App";
+import { CreateNewFile } from "../wailsjs/go/main/App";
 import { OpenFilePicker } from "../wailsjs/go/main/App";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileList } from "./components/file-list";
 import { DeviceList } from "./components/device-list";
+import { useState } from "react";
+import { registry } from "wailsjs/go/models";
 
 export default function SocketShare() {
-  const [uploadProgress, setUploadProgress] = useState(50);
-
-  const files = [
-    { name: "some_video.mp4", uploadTime: "<time of upload>" },
-    { name: "some_audio.mp3", uploadTime: "<time of upload>" },
-    { name: "some_file.docs", uploadTime: "<time of upload>" },
-  ];
+  const [files, setFiles] = useState<registry.File[]>([]);
 
   const devices = ["192.168.0.102", "192.168.0.103", "192.168.0.104"];
-
-  const handleDownload = (fileName: string) => {
-    console.log("Downloading:", fileName);
-  };
 
   const handleButtonClick = async () => {
     try {
       const filePath = await OpenFilePicker();
       if (filePath) {
-        const fileName = filePath.split(/[\\/]/).pop();
-        console.log("Selected file:", fileName);
-
-        await GetFilePath(filePath);
+        const file = await CreateNewFile(filePath);
+        setFiles((prevFile) => [...prevFile, file]);
       }
     } catch (error) {
       console.error("Error selecting file:", error);
@@ -53,7 +42,7 @@ export default function SocketShare() {
         {/* Left section - File list and upload */}
         <div className="flex-1 p-6 flex flex-col">
           <div className="flex-1 mb-6">
-            <FileList files={files} onDownload={handleDownload} />
+            <FileList files={files} />
           </div>
           <div>
             <Button
