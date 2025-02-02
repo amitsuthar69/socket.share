@@ -147,7 +147,7 @@ func (dm *DiscoveryModule) startClient() {
 				Port: responsePort,
 			}
 
-			privateIP := getPrivateIP()
+			privateIP := GetPrivateIP()
 			_, err = conn.WriteToUDP([]byte(privateIP), serverAddr)
 			if err != nil {
 				log.Printf("Error sending response: %v\n", err)
@@ -179,7 +179,7 @@ func (dm *DiscoveryModule) printClientList() {
 }
 
 // A helper function which returns the subnet(private) IP address.
-func getPrivateIP() string {
+func GetPrivateIP() string {
 	addrs, err := net.InterfaceAddrs()
 	if err != nil {
 		log.Print("Error getting interface addresses: ", err)

@@ -4,27 +4,31 @@ import (
 	"context"
 	"fmt"
 	"socket-share/internal/discovery"
+	"socket-share/internal/registry"
 	fs "socket-share/internal/share"
 )
-
-var dm *discovery.DiscoveryModule
 
 // App struct
 type App struct {
 	ctx context.Context
+	dm  *discovery.DiscoveryModule
+	fr  *registry.FileRegistry
 }
 
 // NewApp creates a new App application struct
 func NewApp() *App {
-	dm = discovery.NewDiscoveryModule()
-	return &App{}
+	return &App{
+		dm: discovery.NewDiscoveryModule(),
+		fr: registry.NewFileRegistry(),
+	}
 }
 
 // startup is called at application startup
-func (a *App) startup(ctx context.Context) {
-	a.ctx = ctx
+func (app *App) startup(ctx context.Context) {
+	app.ctx = ctx
 	go fs.StartFileServer()
-	dm.Start()
+	go app.fr.SyncRead()
+	app.dm.Start()
 }
 
 // domReady is called after front-end resources have been loaded

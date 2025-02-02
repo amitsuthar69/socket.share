@@ -1,5 +1,0 @@
-package share
-
-func UploadFile() {
-
-}
