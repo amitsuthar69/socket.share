@@ -1,11 +1,8 @@
-import wailsLogo from "./assets/wails.png";
-
 import { Greet2 } from "../wailsjs/go/main/App";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FileList } from "./components/file-list";
 import { DeviceList } from "./components/device-list";
-import { ProgressBar } from "./components/progress-bar";
 
 export default function SocketShare() {
   const [uploadProgress, setUploadProgress] = useState(50);
@@ -16,7 +13,16 @@ export default function SocketShare() {
     { name: "some_file.docs", uploadTime: "<time of upload>" },
   ];
 
-  const devices = ["192.168.0.102", "192.168.0.103", "192.168.0.104"];
+  const devices = [
+    "192.168.0.102",
+    "192.168.0.103",
+    "192.168.0.104",
+    "192.168.0.105",
+    "192.168.0.106",
+    "192.168.0.107",
+    "192.168.0.108",
+    "192.168.0.109",
+  ];
 
   const handleDownload = (fileName: string) => {
     console.log("Downloading:", fileName);
@@ -36,9 +42,9 @@ export default function SocketShare() {
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-50">
+    <div className="min-h-screen w-full flex flex-col bg-[#0f1515] dark:bg-gray-900 text-white">
       {/* Header */}
-      <div className="text-center py-4 border-b border-gray-200 dark:border-gray-800 relative">
+      <div className="text-center py-4 shadow-2xl relative">
         <h1 className="text-2xl font-medium">
           <div className="flex items-center gap-2 justify-center">
             <img src="./src/assets/socketshare.svg" alt="logo" />
@@ -59,9 +65,9 @@ export default function SocketShare() {
             <Button
               onClick={handleButtonClick}
               variant="outline"
-              className="w-fit text-sm rounded-sm"
+              className="w-fit bg-[#101a1b] hover:text-gray-50 hover:bg-[#1a2c2c] text-gray-50 border-gray-400 text-sm rounded-xl"
             >
-              + upload
+              <img src="./src/assets/upload.svg" /> Upload
             </Button>
             <input
               type="file"
@@ -73,13 +79,8 @@ export default function SocketShare() {
         </div>
 
         {/* Right section - Devices */}
-        <div className="w-80 border-l border-gray-200 dark:border-gray-800 p-6">
+        <div className="w-80 p-6">
           <DeviceList devices={devices} />
-        </div>
-
-        {/* Progress bar */}
-        <div className="absolute bottom-0 left-0 right-0">
-          <ProgressBar progress={uploadProgress} />
         </div>
       </div>
     </div>
