@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 )
 
+// File Server will listen for incoming file download requests from client and process the request.
 func StartFileServer() {
 	listener, err := net.Listen("tcp", ":8080")
 	if err != nil {
@@ -56,6 +57,7 @@ func StartFileServer() {
 	}
 }
 
+// File Client dials a tcp connection on provided destination IP and downloads the file provided in path.
 func StartFileClient(dstIP, filePath string) {
 	conn, err := net.Dial("tcp", fmt.Sprintf("%s:%d", dstIP, 8080))
 	log.Print("file client dialing to: ", fmt.Sprintf("%s:%d", dstIP, 8080))

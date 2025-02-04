@@ -6,6 +6,10 @@ export function CreateNewFile(arg1) {
   return window['go']['main']['App']['CreateNewFile'](arg1);
 }
 
+export function DownloadFile(arg1, arg2) {
+  return window['go']['main']['App']['DownloadFile'](arg1, arg2);
+}
+
 export function OpenFilePicker() {
   return window['go']['main']['App']['OpenFilePicker']();
 }

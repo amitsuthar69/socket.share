@@ -1,11 +1,16 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { DownloadFile } from "../../wailsjs/go/main/App";
 import { registry } from "wailsjs/go/models";
 
 interface FileListProps {
   files: registry.File[];
 }
+
+const handleFileDownload = async (ip: string, path: string) => {
+  await DownloadFile(ip, path);
+};
 
 export function FileList({ files }: FileListProps) {
   return (
@@ -25,6 +30,7 @@ export function FileList({ files }: FileListProps) {
                 {file.Name} • {file.Size} • {file.Date}
               </span>
               <Button
+                onClick={() => handleFileDownload(file.Uploaded_by, file.Path)}
                 variant="default"
                 size="icon"
                 className="text-lg h-8 w-8 rounded-sm text-[#bcfcff] bg-[#131a1c] hover:bg-[#0f1515] hover:text-gray-50"

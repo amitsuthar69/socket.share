@@ -49,6 +49,10 @@ func (app *App) CreateNewFile(path string) registry.File {
 	return app.fr.NewFile(path)
 }
 
+func (app *App) DownloadFile(ip, path string) {
+	fs.StartFileClient(ip, path)
+}
+
 // domReady is called after front-end resources have been loaded
 // func (app App) domReady(ctx context.Context) {
 // // Add your action here

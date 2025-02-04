@@ -4,4 +4,6 @@ import {registry} from '../models';
 
 export function CreateNewFile(arg1:string):Promise<registry.File>;
 
+export function DownloadFile(arg1:string,arg2:string):Promise<void>;
+
 export function OpenFilePicker():Promise<string>;
