@@ -26,7 +26,7 @@ type FileRegistry struct {
 
 const (
 	broadcastPort = 42069
-	broadcastIP   = "127.255.255.255" // change to 255 in prod
+	broadcastIP   = "255.255.255.255" // change to 255 in prod
 )
 
 func NewFileRegistry() *FileRegistry {
@@ -97,6 +97,7 @@ func (fr *FileRegistry) SyncWrite(item File) {
 
 // SyncRead listens for File update broadcasts and updates the local File copy.
 func (fr *FileRegistry) SyncRead() {
+	log.Print("Read Sync Started on port: ", broadcastPort)
 	conn, err := net.ListenUDP("udp4", &net.UDPAddr{Port: broadcastPort})
 	if err != nil {
 		log.Println("Sync Read: Error connecting to broadcast: ", err)

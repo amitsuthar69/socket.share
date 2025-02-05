@@ -12,7 +12,7 @@ const (
 	broadcastPort    = 9000
 	responsePort     = 9001
 	broadcastMessage = "client?"
-	broadcastIP      = "127.255.255.255" // change to 255 in production
+	broadcastIP      = "255.255.255.255" // change to 255 in production
 )
 
 // DiscoveryModule is responsible for peer discovery. It include two entities, client and server.
