@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"strings"
 	"sync"
 	"time"
 )
@@ -12,7 +13,7 @@ const (
 	broadcastPort    = 9000
 	responsePort     = 9001
 	broadcastMessage = "client?"
-	broadcastIP      = "255.255.255.255" // change to 255 in production
+	broadcastIP      = "192.168.0.255" // change to 255 in production
 )
 
 // DiscoveryModule is responsible for peer discovery. It include two entities, client and server.
@@ -180,46 +181,76 @@ func (dm *DiscoveryModule) printClientList() {
 
 // A helper function which returns the subnet(private) IP address.
 func GetPrivateIP() string {
-	addrs, err := net.InterfaceAddrs()
+	ifaces, err := net.Interfaces()
 	if err != nil {
-		log.Print("Error getting interface addresses: ", err)
+		log.Print("Error getting network interfaces: ", err)
 		return "unknown"
 	}
 
-	for _, addr := range addrs {
-		ipnet, ok := addr.(*net.IPNet)
-		if !ok {
-			continue
-		}
-		ip := ipnet.IP
-		if ip.IsLoopback() {
-			continue
-		}
-		ipv4 := ip.To4()
-		if ipv4 == nil {
+	// Checking WiFi interfaces specifically
+	for _, iface := range ifaces {
+
+		// Skip if interface is down or loopback
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
 			continue
 		}
 
-		// Any IP in 172.x.x.x range
-		if ipv4[0] == 172 {
-			return ipv4.String()
+		// Check if this is a WiFi interface
+		if strings.Contains(iface.Name, "WiFi") {
+			addrs, err := iface.Addrs()
+			if err != nil {
+				continue
+			}
+
+			for _, addr := range addrs {
+				ipnet, ok := addr.(*net.IPNet)
+				if !ok {
+					continue
+				}
+				ip := ipnet.IP
+				ipv4 := ip.To4()
+				if ipv4 == nil {
+					continue
+				}
+
+				return ipv4.String()
+			}
+		}
+	}
+
+	// Fallback to other interfaces (like Ethernet)
+	for _, iface := range ifaces {
+
+		// Skip if interface is down or loopback
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
 		}
 
-		if ipv4[0] == 10 ||
-			// (ipv4[0] == 172 && ipv4[1] >= 16 && ipv4[1] <= 31) ||
-			(ipv4[0] == 192 && ipv4[1] == 168) {
-
-			// Checks RFC 1918 private addresses
-			// 10.xxx.xxx.xxx  or 10/8
-			// 172.16.xxx.xxx  or 172.16/12
-			// 192.168.xxx.xxx or 192.168/16
-
-			return ipv4.String()
+		if strings.Contains(iface.Name, "WiFi") {
+			continue
 		}
 
-		// Link-local addresses
-		if ipv4[0] == 169 && ipv4[1] == 254 {
-			return ipv4.String()
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+
+		for _, addr := range addrs {
+			ipnet, ok := addr.(*net.IPNet)
+			if !ok {
+				continue
+			}
+			ip := ipnet.IP
+			ipv4 := ip.To4()
+			if ipv4 == nil {
+				continue
+			}
+
+			if ipv4[0] == 172 ||
+				ipv4[0] == 10 ||
+				(ipv4[0] == 192 && ipv4[1] == 168) {
+				return ipv4.String()
+			}
 		}
 	}
 	return "unknown"

@@ -1,7 +1,7 @@
 package registry
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"log"
 	"net"
@@ -9,6 +9,9 @@ import (
 	"socket-share/internal/discovery"
 	"sync"
 	"time"
+
+	"github.com/vmihailenco/msgpack"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 type File struct {
@@ -26,7 +29,7 @@ type FileRegistry struct {
 
 const (
 	broadcastPort = 42069
-	broadcastIP   = "255.255.255.255" // change to 255 in prod
+	broadcastIP   = "192.168.0.255"
 )
 
 func NewFileRegistry() *FileRegistry {
@@ -79,15 +82,15 @@ func (fr *FileRegistry) SyncWrite(item File) {
 
 	conn, err := net.ListenUDP("udp4", &net.UDPAddr{Port: 0})
 	if err != nil {
-		log.Println("Sync Write: Error marshaling to json: ", err)
+		log.Println("Sync Write: Conn error: ", err)
 	}
 
-	jsonF, err := json.Marshal(item)
+	msgF, err := msgpack.Marshal(item)
 	if err != nil {
-		log.Println("Sync Write: Error marshaling to json: ", err)
+		log.Println("Sync Write: Error marshaling to msgpack: ", err)
 	}
 
-	if _, err = conn.WriteToUDP(jsonF, broadcastAddr); err != nil {
+	if _, err = conn.WriteToUDP(msgF, broadcastAddr); err != nil {
 		log.Println("Sync Write: Error broadcasting file for sync: ", err)
 	}
 
@@ -96,7 +99,7 @@ func (fr *FileRegistry) SyncWrite(item File) {
 }
 
 // SyncRead listens for File update broadcasts and updates the local File copy.
-func (fr *FileRegistry) SyncRead() {
+func (fr *FileRegistry) SyncRead(ctx context.Context) {
 	log.Print("Read Sync Started on port: ", broadcastPort)
 	conn, err := net.ListenUDP("udp4", &net.UDPAddr{Port: broadcastPort})
 	if err != nil {
@@ -113,20 +116,26 @@ func (fr *FileRegistry) SyncRead() {
 		}
 
 		var file File
-		if err := json.Unmarshal(buff[:n], &file); err != nil {
-			log.Println("Sync Read: Error unmarshaling to json: ", err)
+		if err := msgpack.Unmarshal(buff[:n], &file); err != nil {
+			log.Println("Sync Read: Error unmarshaling from msgpack: ", err)
 			continue
 		}
 
 		log.Printf("Sync Read: Received %s from %s", file.Name, file.Uploaded_by)
-		log.Print("File Registry after sync: ", fr.files)
-
 		if file.Uploaded_by == discovery.GetPrivateIP() {
 			continue
 		}
 
 		fr.mu.Lock()
+		if f, exists := fr.files[file]; exists {
+			log.Print("Sync Read: File Already exists: ", f)
+			return
+		}
 		fr.files[file] = file.Uploaded_by
 		fr.mu.Unlock()
+
+		log.Print("Sync Read: File Registry after sync: ", fr.files)
+		runtime.EventsEmit(ctx, "fileEvent", file)
+		log.Print("Sync Read: Emitted fileEvent")
 	}
 }

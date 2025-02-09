@@ -4,13 +4,25 @@ import { OpenFilePicker } from "../wailsjs/go/main/App";
 import { Button } from "@/components/ui/button";
 import { FileList } from "./components/file-list";
 import { DeviceList } from "./components/device-list";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { registry } from "wailsjs/go/models";
+import { EventsOff, EventsOn } from "wailsjs/runtime";
 
 export default function SocketShare() {
   const [files, setFiles] = useState<registry.File[]>([]);
 
   const devices = ["192.168.0.102", "192.168.0.103", "192.168.0.104"];
+
+  useEffect(() => {
+    EventsOn("fileEvent", (newFile: registry.File) => {
+      setFiles((prevFile) => [...prevFile, newFile]);
+    });
+
+    return () => {
+      EventsOff("fileEvent");
+    };
+    
+  }, []);
 
   const handleButtonClick = async () => {
     try {

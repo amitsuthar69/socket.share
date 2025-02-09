@@ -28,7 +28,7 @@ func NewApp() *App {
 func (app *App) startup(ctx context.Context) {
 	app.ctx = ctx
 	go fs.StartFileServer()
-	go app.fr.SyncRead()
+	go app.fr.SyncRead(ctx)
 	app.dm.Start()
 }
 
