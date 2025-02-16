@@ -12,6 +12,19 @@ const handleFileDownload = async (ip: string, path: string) => {
   await DownloadFile(ip, path);
 };
 
+const bytesToMB = (bytes: number): number => {
+  let kb = bytes / 1024;
+  let mb = kb / 1024;
+  return Number(mb.toFixed(2));
+};
+
+const timeStampToDate = (unix: number): string => {
+  const dateStr = new Date(unix * 1000);
+  const date = dateStr.toLocaleDateString();
+  const time = dateStr.toLocaleTimeString();
+  return `${date} ${time}`;
+};
+
 export function FileList({ files }: FileListProps) {
   return (
     <Card className="rounded-md shadow-none bg-[#131a1c] text-white">
@@ -27,7 +40,11 @@ export function FileList({ files }: FileListProps) {
           <div key={index}>
             <div className="flex items-center justify-between px-4 py-2">
               <span className="text-sm text-gray-50">
-                {file.Name} • {file.Size} • {file.Date}
+                {file.Name} •{" "}
+                <span className="text-gray-50/50">
+                  {" "}
+                  {bytesToMB(file.Size)}MB • {timeStampToDate(file.Date)}
+                </span>
               </span>
               <Button
                 onClick={() => handleFileDownload(file.Uploaded_by, file.Path)}
