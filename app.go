@@ -28,8 +28,8 @@ func NewApp() *App {
 func (app *App) startup(ctx context.Context) {
 	app.ctx = ctx
 	go fs.StartFileServer()
-	go app.fr.SyncRead(ctx)
-	app.dm.Start()
+	go app.fr.SyncRead(app.ctx)
+	app.dm.Start(app.ctx)
 }
 
 // OpenFilePicker will open the native file explorer with all file type.

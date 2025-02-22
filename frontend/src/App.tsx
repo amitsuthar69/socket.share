@@ -10,18 +10,23 @@ import { EventsOff, EventsOn } from "wailsjs/runtime";
 
 export default function SocketShare() {
   const [files, setFiles] = useState<registry.File[]>([]);
-
-  const devices = ["192.168.0.102", "192.168.0.103", "192.168.0.104"];
+  const [peers, setPeers] = useState<string[]>([]);
 
   useEffect(() => {
+    // File sync event
     EventsOn("fileEvent", (newFile: registry.File) => {
       setFiles((prevFile) => [...prevFile, newFile]);
     });
 
+    // peer join event
+    EventsOn("peer", (newPeer: string) => {
+      setPeers((peer) => [...peer, newPeer]);
+    });
+
     return () => {
       EventsOff("fileEvent");
+      EventsOff("peer");
     };
-    
   }, []);
 
   const handleButtonClick = async () => {
@@ -69,7 +74,7 @@ export default function SocketShare() {
 
         {/* Right section - Devices */}
         <div className="w-80 p-6">
-          <DeviceList devices={devices} />
+          <DeviceList devices={peers} />
         </div>
       </div>
     </div>

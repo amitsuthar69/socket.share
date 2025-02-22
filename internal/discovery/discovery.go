@@ -1,19 +1,22 @@
 package discovery
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 const (
 	broadcastPort    = 9000
 	responsePort     = 9001
 	broadcastMessage = "client?"
-	broadcastIP      = "192.168.0.255" // change to 255 in production
+	broadcastIP      = "127.255.255.255" // will 127 work for everyone?
 )
 
 // DiscoveryModule is responsible for peer discovery. It include two entities, client and server.
@@ -35,8 +38,8 @@ func NewDiscoveryModule() *DiscoveryModule {
 // Starts the discovery module.
 //
 // Runs the server and client on separate goroutines.
-func (dm *DiscoveryModule) Start() {
-	go dm.startServer()
+func (dm *DiscoveryModule) Start(ctx context.Context) {
+	go dm.startServer(ctx)
 	go dm.startClient()
 	log.Print("discovery module started...")
 }
@@ -81,7 +84,7 @@ func (dm *DiscoveryModule) broadcastLocationRequests(conn *net.UDPConn) {
 // Server creates a udp4 listener to get client's subnet IP address.
 //
 // It uses the broadcastLocationRequests function to ping clients.
-func (dm *DiscoveryModule) startServer() {
+func (dm *DiscoveryModule) startServer(ctx context.Context) {
 	listener, err := net.ListenUDP("udp4", &net.UDPAddr{Port: responsePort})
 	if err != nil {
 		log.Fatal("error listening on port 9001: ", err)
@@ -108,14 +111,17 @@ func (dm *DiscoveryModule) startServer() {
 			clientIP := addr.IP.String()
 			message := string(buff[:n])
 
-			log.Print("CLIENT IP, MESSAGE: ", clientIP, message)
+			log.Printf("CLIENT IP: %s, MESSAGE: %s", clientIP, message)
 
 			dm.mu.Lock()
-			if !contains(dm.clientIPs, clientIP) {
+			if !contains(dm.clientIPs, message) {
 				dm.clientIPs = append(dm.clientIPs, message)
 				log.Printf("New client registered: %s (reported IP: %s)", clientIP, message)
+				// peer join event
+				runtime.EventsEmit(ctx, "peer", message)
 			}
 			dm.mu.Unlock()
+			fmt.Println("registered clients:")
 			dm.printClientList()
 		}
 	}
@@ -171,12 +177,9 @@ func contains(slice []string, item string) bool {
 func (dm *DiscoveryModule) printClientList() {
 	dm.mu.Lock()
 	defer dm.mu.Unlock()
-
-	fmt.Println("Registered Clients:")
 	for i, ip := range dm.clientIPs {
 		fmt.Printf("%d: %s\n", i+1, ip)
 	}
-	fmt.Println("-------------------")
 }
 
 // A helper function which returns the subnet(private) IP address.
